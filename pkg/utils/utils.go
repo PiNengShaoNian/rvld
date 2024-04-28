@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -16,4 +18,17 @@ func MustNo(err error) {
 	if err != nil {
 		Fatal(err)
 	}
+}
+
+func Assert(condition bool) {
+	if !condition {
+		Fatal("assert failed")
+	}
+}
+
+func Read[T any](data []byte) (val T) {
+	reader := bytes.NewReader(data)
+	err := binary.Read(reader, binary.LittleEndian, &val)
+	MustNo(err)
+	return
 }

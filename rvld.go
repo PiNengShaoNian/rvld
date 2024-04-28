@@ -16,4 +16,7 @@ func main() {
 	if !linker.CheckMagic(file.Contents) {
 		utils.Fatal("not an ELF file")
 	}
+
+	inputFile := linker.NewInputFile(file)
+	utils.Assert(len(inputFile.ElfSections) == 11)
 }
