@@ -7,9 +7,12 @@ import (
 )
 
 type InputFile struct {
-	File        *File
-	ElfSections []Shdr
-	ShStrtab    []byte
+	File         *File
+	ElfSections  []Shdr
+	ElfSyms      []Sym
+	FirstGlobal  int64
+	ShStrtab     []byte
+	SymbolStrtab []byte
 }
 
 func NewInputFile(file *File) InputFile {
@@ -41,6 +44,8 @@ func NewInputFile(file *File) InputFile {
 	}
 
 	shstrndx := int64(ehdr.ShStrndx)
+	// 当ehdr.ShStrndx的值为UINT16_MAX的时候，
+	// 实际的shstrndx存储在第一个SectionHeaderTable第一项中的Link中
 	if ehdr.ShStrndx == uint16(elf.SHN_XINDEX) {
 		shstrndx = int64(shdr.Link)
 	}
@@ -61,4 +66,26 @@ func (f *InputFile) GetBytesFromShdr(s *Shdr) []byte {
 
 func (f *InputFile) GetBytesFromIdx(idx int64) []byte {
 	return f.GetBytesFromShdr(&f.ElfSections[idx])
+}
+
+func (f *InputFile) FillUpElfSyms(s *Shdr) {
+	bytes := f.GetBytesFromShdr(s)
+	nums := len(bytes) / SymSize
+
+	f.ElfSyms = make([]Sym, 0, nums)
+	for nums > 0 {
+		f.ElfSyms = append(f.ElfSyms, utils.Read[Sym](bytes))
+		bytes = bytes[SymSize:]
+		nums--
+	}
+}
+
+func (f *InputFile) FindSection(ty uint32) *Shdr {
+	for i := 0; i < len(f.ElfSections); i++ {
+		shdr := &f.ElfSections[i]
+		if shdr.Type == ty {
+			return shdr
+		}
+	}
+	return nil
 }

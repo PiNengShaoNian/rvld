@@ -17,10 +17,14 @@ func main() {
 		utils.Fatal("not an ELF file")
 	}
 
-	inputFile := linker.NewInputFile(file)
-	utils.Assert(len(inputFile.ElfSections) == 11)
+	objFile := linker.NewObjectFile(file)
+	utils.Assert(len(objFile.ElfSections) == 11)
 
-	for _, shdr := range inputFile.ElfSections {
-		println(linker.ElfGetName(inputFile.ShStrtab, shdr.Name))
+	objFile.Parse()
+	utils.Assert(objFile.FirstGlobal == 10)
+	utils.Assert(len(objFile.ElfSyms) == 12)
+
+	for _, sym := range objFile.ElfSyms {
+		println(linker.ElfGetName(objFile.SymbolStrtab, sym.Name))
 	}
 }
