@@ -19,4 +19,8 @@ func main() {
 
 	inputFile := linker.NewInputFile(file)
 	utils.Assert(len(inputFile.ElfSections) == 11)
+
+	for _, shdr := range inputFile.ElfSections {
+		println(linker.ElfGetName(inputFile.ShStrtab, shdr.Name))
+	}
 }

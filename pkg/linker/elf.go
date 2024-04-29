@@ -1,6 +1,9 @@
 package linker
 
-import "unsafe"
+import (
+	"bytes"
+	"unsafe"
+)
 
 const EhdrSize = int(unsafe.Sizeof(Ehdr{}))
 const ShdrSize = int(unsafe.Sizeof(Shdr{}))
@@ -33,4 +36,9 @@ type Shdr struct {
 	Info      uint32
 	AddrAlign uint64
 	EntSize   uint64
+}
+
+func ElfGetName(strTab []byte, offset uint32) string {
+	length := uint32(bytes.Index(strTab[offset:], []byte{0}))
+	return string(strTab[offset : offset+length])
 }
