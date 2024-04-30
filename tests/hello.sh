@@ -4,7 +4,7 @@ test_name=$(basename "$0" .sh)
 t=out/tests/$test_name
 mkdir -p "$t"
 
-cat <<EOF | riscv64-unknown-elf-gcc -o "$t"/a.o -c -xc -
+cat <<EOF | $CC -o "$t"/a.o -c -xc -
 #include <stdio.h>
 
 int main(void) {
@@ -14,3 +14,4 @@ int main(void) {
 EOF
 
 ./rvld "$t"/a.o
+$CC -B. -static "$t"/a.o -o "$t"/out
