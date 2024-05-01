@@ -2,6 +2,7 @@ package linker
 
 import (
 	"bytes"
+	"debug/elf"
 	"rvld/pkg/utils"
 	"strconv"
 	"strings"
@@ -98,4 +99,12 @@ func (a *ArHdr) ReadName(strTab []byte) string {
 func ElfGetName(strTab []byte, offset uint32) string {
 	length := uint32(bytes.Index(strTab[offset:], []byte{0}))
 	return string(strTab[offset : offset+length])
+}
+
+func (s *Sym) IsAbs() bool {
+	return s.Shndx == uint16(elf.SHN_ABS)
+}
+
+func (s *Sym) IsUndef() bool {
+	return s.Shndx == uint16(elf.SHN_UNDEF)
 }

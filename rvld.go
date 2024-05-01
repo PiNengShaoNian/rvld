@@ -34,9 +34,20 @@ func main() {
 
 	println(len(ctx.Objs))
 
-	for _, obj := range ctx.Objs {
-		println(obj.File.Name)
+	linker.ResolveSymbols(ctx)
+	linker.MarkLiveObjects(ctx)
+
+	for _, o := range ctx.Objs {
+		if o.File.Name == "out/tests/hello/a.o" {
+			for _, sym := range o.Symbols {
+				if sym.Name == "puts" {
+					println(sym.File.File.Parent.Name)
+				}
+			}
+		}
 	}
+
+	println(len(ctx.Objs))
 }
 
 func parseArgs(ctx *linker.Context) []string {

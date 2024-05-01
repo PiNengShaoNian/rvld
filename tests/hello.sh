@@ -13,5 +13,4 @@ int main(void) {
 }
 EOF
 
-./rvld "$t"/a.o
 $CC -B. -static "$t"/a.o -o "$t"/out
