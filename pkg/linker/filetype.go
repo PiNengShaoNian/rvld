@@ -1,6 +1,7 @@
 package linker
 
 import (
+	"bytes"
 	"debug/elf"
 	"rvld/pkg/utils"
 )
@@ -11,6 +12,7 @@ const (
 	FileTypeUnknown FileType = iota
 	FileTypeEmpty   FileType = iota
 	FileTypeObject  FileType = iota
+	FileTypeArchive FileType = iota
 )
 
 func GetFileType(contents []byte) FileType {
@@ -26,6 +28,10 @@ func GetFileType(contents []byte) FileType {
 		}
 
 		return FileTypeUnknown
+	}
+
+	if bytes.HasPrefix(contents, []byte("!<arch>\n")) {
+		return FileTypeArchive
 	}
 
 	return FileTypeUnknown
