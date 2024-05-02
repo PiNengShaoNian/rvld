@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"rvld/pkg/linker"
 	"rvld/pkg/utils"
 	"strings"
@@ -137,6 +138,10 @@ func parseArgs(ctx *linker.Context) []string {
 			remaining = append(remaining, args[0])
 			args = args[1:]
 		}
+	}
+
+	for i, path := range ctx.Args.LibraryPaths {
+		ctx.Args.LibraryPaths[i] = filepath.Clean(path)
 	}
 
 	return remaining

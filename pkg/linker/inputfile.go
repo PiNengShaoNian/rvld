@@ -73,14 +73,7 @@ func (f *InputFile) GetBytesFromIdx(idx int64) []byte {
 
 func (f *InputFile) FillUpElfSyms(s *Shdr) {
 	bytes := f.GetBytesFromShdr(s)
-	nums := len(bytes) / SymSize
-
-	f.ElfSyms = make([]Sym, 0, nums)
-	for nums > 0 {
-		f.ElfSyms = append(f.ElfSyms, utils.Read[Sym](bytes))
-		bytes = bytes[SymSize:]
-		nums--
-	}
+	f.ElfSyms = utils.ReadSlice[Sym](bytes, SymSize)
 }
 
 func (f *InputFile) FindSection(ty uint32) *Shdr {

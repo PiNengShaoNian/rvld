@@ -48,12 +48,7 @@ func (o *ObjectFile) InitializeSections() {
 
 func (o *ObjectFile) FillUpSymtabShndxSec(s *Shdr) {
 	bytes := o.GetBytesFromShdr(s)
-	nums := len(bytes) / 4
-	for nums > 0 {
-		o.SymtabShndxSec = append(o.SymtabShndxSec, utils.Read[uint32](bytes))
-		bytes = bytes[4:]
-		nums--
-	}
+	o.SymtabShndxSec = utils.ReadSlice[uint32](bytes, 4)
 }
 
 func (o *ObjectFile) InitializeSymbols(ctx *Context) {
