@@ -74,3 +74,11 @@ func AllZeros(bytes []byte) bool {
 
 	return b == 0
 }
+
+func AlignTo(val, align uint64) uint64 {
+	if align == 0 {
+		return val
+	}
+
+	return (val + align - 1) &^ (align - 1)
+}

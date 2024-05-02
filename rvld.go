@@ -32,24 +32,22 @@ func main() {
 	}
 
 	linker.ReadInputFiles(ctx, remaining)
-
-	println(len(ctx.Objs))
-
+	linker.CreateInternalFile(ctx)
 	linker.ResolveSymbols(ctx)
 	linker.MarkLiveObjects(ctx)
 	linker.RegisterSectionPieces(ctx)
+	linker.CreateSyntheticSections(ctx)
 
-	for _, o := range ctx.Objs {
-		if o.File.Name == "out/tests/hello/a.o" {
-			for _, sym := range o.Symbols {
-				if sym.Name == "puts" {
-					println(sym.File.File.Parent.Name)
-				}
-			}
-		}
+	fileSize := linker.GetFileSize(ctx)
+	ctx.Buf = make([]byte, fileSize)
+	file, err := os.OpenFile(ctx.Args.Output, os.O_RDWR|os.O_CREATE, 0777)
+	utils.MustNo(err)
+	for _, chunk := range ctx.Chunks {
+		chunk.CopyBuf(ctx)
 	}
 
-	println(len(ctx.Objs))
+	_, err = file.Write(ctx.Buf)
+	utils.MustNo(err)
 }
 
 func parseArgs(ctx *linker.Context) []string {
