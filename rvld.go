@@ -37,6 +37,7 @@ func main() {
 
 	linker.ResolveSymbols(ctx)
 	linker.MarkLiveObjects(ctx)
+	linker.RegisterSectionPieces(ctx)
 
 	for _, o := range ctx.Objs {
 		if o.File.Name == "out/tests/hello/a.o" {

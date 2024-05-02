@@ -3,11 +3,12 @@ package linker
 import "rvld/pkg/utils"
 
 type Symbol struct {
-	File         *ObjectFile
-	InputSection *InputSection
-	Name         string
-	Value        uint64
-	SymIdx       int
+	File            *ObjectFile
+	Name            string
+	Value           uint64
+	SymIdx          int
+	InputSection    *InputSection
+	SectionFragment *SectionFragment
 }
 
 func NewSymbol(name string) *Symbol {
@@ -17,6 +18,12 @@ func NewSymbol(name string) *Symbol {
 
 func (s *Symbol) SetInputSection(section *InputSection) {
 	s.InputSection = section
+	s.SectionFragment = nil
+}
+
+func (s *Symbol) SetSectionFragment(frag *SectionFragment) {
+	s.SectionFragment = frag
+	s.InputSection = nil
 }
 
 func GetSymbolByName(ctx *Context, name string) *Symbol {

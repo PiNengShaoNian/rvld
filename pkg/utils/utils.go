@@ -65,3 +65,12 @@ func RemoveIf[T any](elems []T, condition func(T) bool) []T {
 
 	return elems[:i]
 }
+
+func AllZeros(bytes []byte) bool {
+	b := byte(0)
+	for _, s := range bytes {
+		b |= s
+	}
+
+	return b == 0
+}

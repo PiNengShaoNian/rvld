@@ -1,15 +1,17 @@
 package linker
 
 import (
+	"bytes"
 	"debug/elf"
 	"rvld/pkg/utils"
 )
 
 type ObjectFile struct {
 	InputFile
-	SymtabSec      *Shdr
-	SymtabShndxSec []uint32
-	Sections       []*InputSection
+	SymtabSec         *Shdr
+	SymtabShndxSec    []uint32
+	Sections          []*InputSection
+	MergeableSections []*MergeableSection
 }
 
 func NewObjectFile(file *File, isAlive bool) *ObjectFile {
@@ -29,6 +31,7 @@ func (o *ObjectFile) Parse(ctx *Context) {
 
 	o.InitializeSections()
 	o.InitializeSymbols(ctx)
+	o.InitializeMergeableSections(ctx)
 }
 
 func (o *ObjectFile) InitializeSections() {
@@ -146,5 +149,105 @@ func (o *ObjectFile) ClearSymbols() {
 		if sym.File == o {
 			sym.Clear()
 		}
+	}
+}
+
+func (o *ObjectFile) InitializeMergeableSections(ctx *Context) {
+	o.MergeableSections = make([]*MergeableSection, len(o.Sections))
+	for i := 0; i < len(o.Sections); i++ {
+		section := o.Sections[i]
+		if section != nil && section.IsAlive &&
+			section.Shdr().Flags&uint64(elf.SHF_MERGE) != 0 {
+			o.MergeableSections[i] = splitSection(ctx, section)
+			section.IsAlive = false
+		}
+	}
+}
+
+func findNull(data []byte, entSize int) int {
+	if entSize == 1 {
+		return bytes.Index(data, []byte{0})
+	}
+
+	for i := 0; i <= len(data)-entSize; i += entSize {
+		bytes := data[i : i+entSize]
+		if utils.AllZeros(bytes) {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func splitSection(ctx *Context, section *InputSection) *MergeableSection {
+	m := &MergeableSection{}
+	shdr := section.Shdr()
+
+	m.Parent = GetMergedSectionInstance(ctx, section.Name(), shdr.Type, shdr.Flags)
+	m.P2Align = section.P2Align
+	data := section.Contents
+	offset := uint64(0)
+	if (shdr.Flags & uint64(elf.SHF_STRINGS)) != 0 {
+		for len(data) > 0 {
+			end := findNull(data, int(shdr.EntSize))
+			if end == -1 {
+				utils.Fatal("string is not null terminated")
+			}
+
+			size := uint64(end) + shdr.EntSize
+			substr := data[:size]
+			data = data[size:]
+			m.Strs = append(m.Strs, string(substr))
+			m.FragOffsets = append(m.FragOffsets, uint32(offset))
+			offset += size
+		}
+	} else {
+		if uint64(len(data))%shdr.EntSize != 0 {
+			utils.Fatal("section size is not multiple of entsize")
+		}
+
+		for len(data) > 0 {
+			substr := data[:shdr.EntSize]
+			data = data[shdr.EntSize:]
+			m.Strs = append(m.Strs, string(substr))
+			m.FragOffsets = append(m.FragOffsets, uint32(offset))
+			offset += shdr.EntSize
+		}
+	}
+
+	return m
+}
+
+func (o *ObjectFile) RegisterSectionPieces() {
+	for _, m := range o.MergeableSections {
+		if m == nil {
+			continue
+		}
+
+		m.Fragments = make([]*SectionFragment, 0, len(m.Strs))
+		for i := 0; i < len(m.Strs); i++ {
+			m.Fragments = append(m.Fragments,
+				m.Parent.Insert(m.Strs[i], uint32(m.P2Align)))
+		}
+	}
+
+	for i := 1; i < len(o.ElfSyms); i++ {
+		sym := o.Symbols[i]
+		elfSym := &o.ElfSyms[i]
+
+		if elfSym.IsAbs() || elfSym.IsUndef() || elfSym.IsCommon() {
+			continue
+		}
+
+		m := o.MergeableSections[o.GetShndx(elfSym, i)]
+		if m == nil {
+			continue
+		}
+		frag, fragOffset := m.GetFragment(uint32(elfSym.Val))
+		if frag == nil {
+			utils.Fatal("bad symbol value")
+		}
+		sym.SetSectionFragment(frag)
+		sym.Value = uint64(fragOffset)
 	}
 }

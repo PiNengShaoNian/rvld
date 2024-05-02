@@ -42,3 +42,9 @@ func MarkLiveObjects(ctx *Context) {
 		return !file.IsAlive
 	})
 }
+
+func RegisterSectionPieces(ctx *Context) {
+	for _, file := range ctx.Objs {
+		file.RegisterSectionPieces()
+	}
+}
