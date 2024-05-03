@@ -1,6 +1,9 @@
 package linker
 
-import "rvld/pkg/utils"
+import (
+	"math"
+	"rvld/pkg/utils"
+)
 
 func CreateInternalFile(ctx *Context) {
 	obj := &ObjectFile{}
@@ -63,17 +66,70 @@ func RegisterSectionPieces(ctx *Context) {
 }
 
 func CreateSyntheticSections(ctx *Context) {
-	ctx.Ehdr = NewOutputEhdr()
-	ctx.Chunks = append(ctx.Chunks, ctx.Ehdr)
+	push := func(chunk Chunker) Chunker {
+		ctx.Chunks = append(ctx.Chunks, chunk)
+		return chunk
+	}
+
+	ctx.Ehdr = push(NewOutputEhdr()).(*OutputEhdr)
+	ctx.Shdr = push(NewOutputShdr()).(*OutputShdr)
 }
 
-func GetFileSize(ctx *Context) uint64 {
+func SetOutputSectionOffsets(ctx *Context) uint64 {
 	fileOff := uint64(0)
 
 	for _, c := range ctx.Chunks {
-		fileOff += utils.AlignTo(fileOff, c.GetShdr().AddrAlign)
+		fileOff = utils.AlignTo(fileOff, c.GetShdr().AddrAlign)
+		c.GetShdr().Offset = fileOff
 		fileOff += c.GetShdr().Size
 	}
 
 	return fileOff
+}
+
+func BinSections(ctx *Context) {
+	group := make([][]*InputSection, len(ctx.OutputSections))
+	for _, file := range ctx.Objs {
+		for _, section := range file.Sections {
+			if section == nil || !section.IsAlive {
+				continue
+			}
+
+			idx := section.OutputSection.Idx
+			group[idx] = append(group[idx], section)
+		}
+	}
+
+	for idx, section := range ctx.OutputSections {
+		section.Members = group[idx]
+	}
+}
+
+func CollectOutputSections(ctx *Context) []Chunker {
+	chunks := make([]Chunker, 0)
+	for _, section := range ctx.OutputSections {
+		if len(section.Members) > 0 {
+			chunks = append(chunks, section)
+		}
+	}
+
+	return chunks
+}
+
+func ComputeSectionSizes(ctx *Context) {
+	for _, outputSection := range ctx.OutputSections {
+		offset := uint64(0)
+		p2align := uint64(0)
+
+		for _, inputSection := range outputSection.Members {
+			offset = utils.AlignTo(offset, 1<<inputSection.P2Align)
+			inputSection.Offset = uint32(offset)
+			offset += uint64(inputSection.ShSize)
+			p2align = uint64(math.Max(float64(p2align), float64(inputSection.P2Align)))
+		}
+
+		outputSection.Shdr.Size = offset
+		outputSection.Shdr.AddrAlign = 1 << p2align
+	}
+
 }

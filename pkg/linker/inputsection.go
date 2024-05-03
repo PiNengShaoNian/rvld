@@ -13,9 +13,12 @@ type InputSection struct {
 	ShSize   uint32
 	IsAlive  bool
 	P2Align  uint8
+
+	Offset        uint32
+	OutputSection *OutputSection
 }
 
-func NewInputSection(file *ObjectFile, shndx uint32) *InputSection {
+func NewInputSection(ctx *Context, name string, file *ObjectFile, shndx uint32) *InputSection {
 	s := &InputSection{
 		File:    file,
 		Shndx:   shndx,
@@ -36,6 +39,8 @@ func NewInputSection(file *ObjectFile, shndx uint32) *InputSection {
 	}
 	s.P2Align = toP2Align(shdr.AddrAlign)
 
+	s.OutputSection =
+		GetOutputSection(ctx, name, uint64(shdr.Type), shdr.Flags)
 	return s
 }
 
@@ -46,4 +51,17 @@ func (i *InputSection) Shdr() *Shdr {
 
 func (i *InputSection) Name() string {
 	return ElfGetName(i.File.ShStrtab, i.Shdr().Name)
+}
+
+func (i *InputSection) WriteTo(buf []byte) {
+	// 过滤掉.bss这种不占用磁盘空间的段
+	if i.Shdr().Type == uint32(elf.SHT_NOBITS) || i.ShSize == 0 {
+		return
+	}
+
+	i.CopyContents(buf)
+}
+
+func (i *InputSection) CopyContents(buf []byte) {
+	copy(buf, i.Contents)
 }

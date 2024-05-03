@@ -12,8 +12,11 @@ type Context struct {
 	Args ContextArgs
 	Buf  []byte
 
-	Ehdr   *OutputEhdr
-	Chunks []Chunker
+	Ehdr *OutputEhdr
+	Shdr *OutputShdr
+
+	OutputSections []*OutputSection
+	Chunks         []Chunker
 
 	Objs           []*ObjectFile
 	SymbolMap      map[string]*Symbol

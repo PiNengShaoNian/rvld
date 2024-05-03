@@ -1,13 +1,17 @@
 package linker
 
 type Chunker interface {
+	GetName() string
 	GetShdr() *Shdr
+	UpdateShdr(ctx *Context)
+	GetShndx() int64
 	CopyBuf(ctx *Context)
 }
 
 type Chunk struct {
-	Name string
-	Shdr Shdr
+	Name  string
+	Shdr  Shdr
+	Shndx int64
 }
 
 func NewChunk() Chunk {
@@ -16,6 +20,18 @@ func NewChunk() Chunk {
 			AddrAlign: 1,
 		},
 	}
+}
+
+func (c *Chunk) GetName() string {
+	return c.Name
+}
+
+func (c *Chunk) UpdateShdr(ctx *Context) {
+
+}
+
+func (c *Chunk) GetShndx() int64 {
+	return c.Shndx
 }
 
 func (c *Chunk) GetShdr() *Shdr {
