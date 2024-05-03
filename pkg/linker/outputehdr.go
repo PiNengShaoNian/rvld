@@ -21,6 +21,31 @@ func NewOutputEhdr() *OutputEhdr {
 	}}
 }
 
+func GetEntryAddress(ctx *Context) uint64 {
+	for _, outputSection := range ctx.OutputSections {
+		if outputSection.Name == ".text" {
+			return outputSection.Shdr.Addr
+		}
+	}
+	return 0
+}
+
+func getFlags(ctx *Context) uint32 {
+	utils.Assert(len(ctx.Objs) > 0)
+	flags := ctx.Objs[0].GetEhdr().Flags
+	for _, obj := range ctx.Objs[1:] {
+		if obj == ctx.InternalObj {
+			continue
+		}
+		if obj.GetEhdr().Flags&EF_RISCV_RVC != 0 {
+			flags |= EF_RISCV_RVC
+			break
+		}
+	}
+
+	return flags
+}
+
 func (o *OutputEhdr) CopyBuf(ctx *Context) {
 	ehdr := &Ehdr{}
 	WriteMagic(ehdr.Ident[:])
@@ -32,12 +57,15 @@ func (o *OutputEhdr) CopyBuf(ctx *Context) {
 	ehdr.Type = uint16(elf.ET_EXEC)
 	ehdr.Machine = uint16(elf.EM_RISCV)
 	ehdr.Version = uint32(elf.EV_CURRENT)
+	ehdr.Entry = GetEntryAddress(ctx)
 
+	ehdr.ShOff = ctx.Shdr.Shdr.Offset
+	ehdr.Flags = getFlags(ctx)
 	ehdr.EhSize = uint16(EhdrSize)
 	ehdr.PhEntSize = uint16(PhdrSize)
 
 	ehdr.ShEntSize = uint16(ShdrSize)
-	ehdr.ShNum = 0
+	ehdr.ShNum = uint16(ctx.Shdr.Shdr.Size / uint64(ShdrSize))
 
 	buf := &bytes.Buffer{}
 	err := binary.Write(buf, binary.LittleEndian, ehdr)
