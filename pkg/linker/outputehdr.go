@@ -59,10 +59,12 @@ func (o *OutputEhdr) CopyBuf(ctx *Context) {
 	ehdr.Version = uint32(elf.EV_CURRENT)
 	ehdr.Entry = GetEntryAddress(ctx)
 
+	ehdr.PhOff = ctx.Phdr.Shdr.Offset
 	ehdr.ShOff = ctx.Shdr.Shdr.Offset
 	ehdr.Flags = getFlags(ctx)
 	ehdr.EhSize = uint16(EhdrSize)
 	ehdr.PhEntSize = uint16(PhdrSize)
+	ehdr.PhNum = uint16(ctx.Phdr.Shdr.Size) / uint16(PhdrSize)
 
 	ehdr.ShEntSize = uint16(ShdrSize)
 	ehdr.ShNum = uint16(ctx.Shdr.Shdr.Size / uint64(ShdrSize))

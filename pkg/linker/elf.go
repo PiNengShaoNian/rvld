@@ -11,6 +11,7 @@ import (
 
 const IMAGE_BASE uint64 = 0x200000
 const EF_RISCV_RVC uint32 = 1
+const PageSize = 4096
 
 const EhdrSize = int(unsafe.Sizeof(Ehdr{}))
 const ShdrSize = int(unsafe.Sizeof(Shdr{}))
