@@ -18,6 +18,7 @@ const ShdrSize = int(unsafe.Sizeof(Shdr{}))
 const PhdrSize = int(unsafe.Sizeof(Phdr{}))
 const SymSize = int(unsafe.Sizeof(Sym{}))
 const ArHdrSize = int(unsafe.Sizeof(ArHdr{}))
+const RelaSize = int(unsafe.Sizeof(Rela{}))
 
 type Ehdr struct {
 	Ident     [16]uint8
@@ -67,6 +68,13 @@ type Sym struct {
 	Shndx uint16
 	Val   uint64
 	Size  uint64
+}
+
+type Rela struct {
+	Offset uint64
+	Type   uint32
+	Sym    uint32
+	Addend int64
 }
 
 type ArHdr struct {

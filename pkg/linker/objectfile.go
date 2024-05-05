@@ -3,6 +3,7 @@ package linker
 import (
 	"bytes"
 	"debug/elf"
+	"math"
 	"rvld/pkg/utils"
 )
 
@@ -32,6 +33,7 @@ func (o *ObjectFile) Parse(ctx *Context) {
 	o.InitializeSections(ctx)
 	o.InitializeSymbols(ctx)
 	o.InitializeMergeableSections(ctx)
+	o.SkipEhFrameSections()
 }
 
 func (o *ObjectFile) InitializeSections(ctx *Context) {
@@ -46,6 +48,19 @@ func (o *ObjectFile) InitializeSections(ctx *Context) {
 		default:
 			name := ElfGetName(o.InputFile.ShStrtab, shdr.Name)
 			o.Sections[i] = NewInputSection(ctx, name, o, uint32(i))
+		}
+	}
+
+	for i := 0; i < len(o.ElfSections); i++ {
+		shdr := &o.InputFile.ElfSections[i]
+		if shdr.Type != uint32(elf.SHT_REL) {
+			continue
+		}
+
+		utils.Assert(shdr.Info < uint32(len(o.Sections)))
+		if target := o.Sections[shdr.Info]; target != nil {
+			utils.Assert(target.RelsecIdx == math.MaxUint32)
+			target.RelsecIdx = uint32(i)
 		}
 	}
 }
@@ -250,5 +265,22 @@ func (o *ObjectFile) RegisterSectionPieces() {
 		}
 		sym.SetSectionFragment(frag)
 		sym.Value = uint64(fragOffset)
+	}
+}
+
+func (o *ObjectFile) SkipEhFrameSections() {
+	for _, section := range o.Sections {
+		if section != nil && section.IsAlive && section.Name() == ".eh_frame" {
+			section.IsAlive = false
+		}
+	}
+}
+
+func (o *ObjectFile) ScanRelocations() {
+	for _, section := range o.Sections {
+		if section != nil && section.IsAlive &&
+			section.Shdr().Flags&uint64(elf.SHF_ALLOC) != 0 {
+			section.ScanRelocations()
+		}
 	}
 }

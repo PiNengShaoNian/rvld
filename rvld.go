@@ -32,13 +32,13 @@ func main() {
 	}
 
 	linker.ReadInputFiles(ctx, remaining)
-	linker.CreateInternalFile(ctx)
 	linker.ResolveSymbols(ctx)
 	linker.MarkLiveObjects(ctx)
 	linker.RegisterSectionPieces(ctx)
 	linker.CreateSyntheticSections(ctx)
 	linker.BinSections(ctx)
 	ctx.Chunks = append(ctx.Chunks, linker.CollectOutputSections(ctx)...)
+	linker.ScanRelocations(ctx)
 	linker.ComputeSectionSizes(ctx)
 	linker.SortOutputSections(ctx)
 
